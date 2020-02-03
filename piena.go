@@ -91,7 +91,7 @@ func main() {
 			fmt.Println("Resultcode: no tag present")
 		case NFC_STATE_TAGREMOVED:
 			fmt.Println("Resultcode: tag removed")
-			fmt.Errorf("Response: ", err)
+			fmt.Println("Response: ", err)
 		case NFC_STATE_TAGSTILLPRESENT:
 			fmt.Printf("Resultcode: tag still present: %s\n", tagID)
 
