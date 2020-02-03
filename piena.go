@@ -54,6 +54,10 @@ func getCurrentNFCTagID(pnd *nfc.Device) (int, string, error) {
 				return NFC_STATE_TAGSTILLPRESENT, tagID, nil
 			} // fail, old tag not present anymore.
 			currentNFCTarget = nil
+			err = pnd.InitiatorDeselectTarget()
+			if err != nil {
+				fmt.Errorf("error deselecting tag", err)
+			}
 			return NFC_STATE_TAGREMOVED, "", result
 		}
 		// no tag present and no old tag.
@@ -89,6 +93,10 @@ func main() {
 	}
 
 	fmt.Println("opened device", pnd, pnd.Connection())
+	err = pnd.InitiatorDeselectTarget()
+	if err != nil {
+		fmt.Errorf("error deselecting tag", err)
+	}
 
 	for {
 		resultCode, tagID, err := getCurrentNFCTagID(&pnd)
