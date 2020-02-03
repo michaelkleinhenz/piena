@@ -17,7 +17,7 @@ const (
 )
 
 var (
-	nfcModulationType = nfc.Modulation{Type: nfc.ISO14443a, BaudRate: nfc.Nbr106}
+	nfcModulationType = nfc.Modulation{Type: nfc.ForceISO14443a, BaudRate: nfc.Nbr106}
 	currentNFCTarget  nfc.Target
 )
 
