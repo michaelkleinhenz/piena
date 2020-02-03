@@ -62,7 +62,7 @@ func getCurrentNFCTagID(pnd *nfc.Device) (int, string, error) {
 		uID := (currentNFCTarget.(*nfc.ISO14443aTarget)).UID
 		fmt.Println(uID)
 		fmt.Println("a1")
-		_, err := pnd.InitiatorSelectPassiveTarget(nfcModulationType, uID[0:4])
+		currentNFCTarget, err := pnd.InitiatorSelectPassiveTarget(nfcModulationType, uID[0:4])
 		fmt.Println("a2")
 		tagID, err := toString(currentNFCTarget)
 		if err != nil {
