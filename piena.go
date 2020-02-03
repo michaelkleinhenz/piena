@@ -34,8 +34,11 @@ func altNFC(pnd *nfc.Device) (int, string, error) {
 		return NFC_STATE_ERROR, "", err
 	}
 	if target == nil {
-		result := pnd.InitiatorTargetIsPresent(currentNFCTarget)
-		fmt.Println(result)
+		if currentNFCTarget != nil {
+			result := pnd.InitiatorTargetIsPresent(currentNFCTarget)
+			fmt.Println("PREVIOUS DETECTED")	
+			fmt.Println(result)	
+		}
 		return NFC_STATE_ERROR, "", errors.New("returned target was nil")
 	}
 	tagID, err := toString(target)
