@@ -24,7 +24,10 @@ func get_card(pnd *nfc.Device) ([10]byte, error) {
 
 		for _, t := range targets {
 			if card, ok := t.(*nfc.ISO14443aTarget); ok {
-				return card.UID, nil
+				fmt.Printf("card found %#X\n", card)
+				//return card.UID, nil
+			} else {
+				fmt.Printf("card not found\n")
 			}
 		}
 	}
