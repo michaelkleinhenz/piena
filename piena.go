@@ -64,9 +64,9 @@ func getCurrentNFCTagID(pnd *nfc.Device) (int, string, error) {
 		return NFC_STATE_NOTAGPRESENT, "", nil
 	} else if len(targets) == 1 { // one new tag detected.
 		currentNFCTarget = targets[0]
-		//uID := (currentNFCTarget.(*nfc.ISO14443aTarget)).UID
+		uID := (currentNFCTarget.(*nfc.ISO14443aTarget)).UID
 		fmt.Println("a1")
-		_, err := pnd.InitiatorSelectPassiveTarget(nfcModulationType, nil)
+		_, err := pnd.InitiatorSelectPassiveTarget(nfcModulationType, uID[:])
 		fmt.Println("a2")
 		tagID, err := toString(currentNFCTarget)
 		if err != nil {
