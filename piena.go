@@ -34,13 +34,15 @@ func altNFC(pnd *nfc.Device) (int, string, error) {
 		return NFC_STATE_ERROR, "", err
 	}
 	if target == nil {
+		result := pnd.InitiatorTargetIsPresent(currentNFCTarget)
+		fmt.Println(result)
 		return NFC_STATE_ERROR, "", errors.New("returned target was nil")
 	}
 	tagID, err := toString(target)
 	if err != nil {
 		return NFC_STATE_ERROR, "", err
 	}
-	fmt.Printf("Modulation type: %d", target.Modulation().Type)
+	currentNFCTarget = target
 	return NFC_STATE_NEWTAGPRESENT, tagID, nil
 }
 
