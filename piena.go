@@ -42,7 +42,7 @@ func getCurrentNFCTagID(pnd *nfc.Device) (int, string, error) {
 			if err != nil {
 				return NFC_STATE_ERROR, "", err
 			}
-			result := pnd.InitiatorTargetIsPresent(selectedTarget)
+			result := pnd.InitiatorTargetIsPresent(currentNFCTarget)
 			if result == nil { // success, old tag still present.
 				tagID, err := toString(currentNFCTarget)
 				if err != nil {
