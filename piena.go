@@ -30,15 +30,15 @@ func toString(t nfc.Target) (string, error) {
 
 func altNFC(pnd *nfc.Device) (int, string, error) {
 	target, _, err := pnd.InitiatorSelectPassiveTarget(nfcModulationType, nil)
+	if currentNFCTarget != nil {
+		result := pnd.InitiatorTargetIsPresent(currentNFCTarget)
+		fmt.Println("PREVIOUS DETECTED")	
+		fmt.Println(result)	
+	}
 	if err != nil {
 		return NFC_STATE_ERROR, "", err
 	}
 	if target == nil {
-		if currentNFCTarget != nil {
-			result := pnd.InitiatorTargetIsPresent(currentNFCTarget)
-			fmt.Println("PREVIOUS DETECTED")	
-			fmt.Println(result)	
-		}
 		return NFC_STATE_ERROR, "", errors.New("returned target was nil")
 	}
 	tagID, err := toString(target)
