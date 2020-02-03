@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"log"
 
@@ -8,41 +9,64 @@ import (
 	"rsc.io/quote"
 )
 
-var (
-	m      = nfc.Modulation{Type: nfc.ISO14443a, BaudRate: nfc.Nbr106}
-	devstr = "" // Use empty string to select first device
+const (
+	NFC_STATE_ERROR           = -1
+	NFC_STATE_TAGREMOVED      = 0
+	NFC_STATE_TAGSTILLPRESENT = 1
+	NFC_STATE_NEWTAGPRESENT   = 2
+	NFC_STATE_NOTAGPRESENT    = 3
 )
 
-// Blocks until a target is detected and returns its UID.
-// Only cares about the first target it sees.
-func get_card(pnd *nfc.Device) ([10]byte, error) {
-	for {
-		fmt.Printf("check card 1\n")
-		targets, err := pnd.InitiatorListPassiveTargets(m)
-		fmt.Println(targets)
-		if err != nil {
-			return [10]byte{}, fmt.Errorf("listing available nfc targets", err)
-		}
+var (
+	nfcModulationType = nfc.Modulation{Type: nfc.ISO14443a, BaudRate: nfc.Nbr106}
+	currentNFCTarget  nfc.Target
+)
 
-		for _, t := range targets {
-			if card, ok := t.(*nfc.ISO14443aTarget); ok {
-				fmt.Printf("card found %#X\n", card.UID)
-				//return card.UID, nil
-			} else {
-				fmt.Printf("card not found\n")
-			}
-		}
-	}
+func toString(t nfc.Target) (string, error) {
+	if card, ok := t.(*nfc.ISO14443aTarget); ok {
+		return fmt.Sprintf("%#X", card.UID), nil
+	} 
+	return "", errors.New("error converting target to string")
 }
 
-func Hello() string {
-	return quote.Hello()
+func getCurrentNFCTagID(pnd *nfc.Device) (int, string, error) {
+	targets, err := pnd.InitiatorListPassiveTargets(nfcModulationType)
+	if err != nil {
+		return NFC_STATE_ERROR, "", err
+	}
+	if len(targets) == 0 { // no tag or tag still present.
+		// check if old tag is still present
+		if currentNFCTarget != nil {
+			result := pnd.InitiatorTargetIsPresent(currentNFCTarget)
+			if result == nil { // success, old tag still present.
+				tagID, err := toString(currentNFCTarget)
+				if err != nil {
+					return NFC_STATE_ERROR, "", err
+				}
+				return NFC_STATE_TAGSTILLPRESENT, tagID, nil
+			} // fail, old tag not present anymore.
+			currentNFCTarget = nil
+			return NFC_STATE_TAGREMOVED, "", nil
+		}
+		// no tag present and no old tag.
+		return NFC_STATE_NOTAGPRESENT, "", nil
+	} else if len(targets) == 1 { // one new tag detected.
+		currentNFCTarget = targets[0]
+		tagID, err := toString(currentNFCTarget)
+		if err != nil {
+			return NFC_STATE_ERROR, "", err
+		}
+		return NFC_STATE_NEWTAGPRESENT, tagID, nil
+	}
+	// multiple tags detected.
+	return NFC_STATE_ERROR, "", err
 }
 
 func main() {
 	fmt.Println("using libnfc", nfc.Version())
 
-	pnd, err := nfc.Open(devstr)
+	// open the first available NFC reader.
+	pnd, err := nfc.Open("")
 	if err != nil {
 		log.Fatalf("could not open device: %v", err)
 	}
@@ -54,14 +78,23 @@ func main() {
 
 	fmt.Println("opened device", pnd, pnd.Connection())
 
-	card_id, err := get_card(&pnd)
-	if err != nil {
-		fmt.Errorf("failed to get_card", err)
-	}
+	for {
+		resultCode, tagID, err := getCurrentNFCTagID(&pnd)
+		if err != nil {
+			fmt.Errorf("failed to query reader", err)
+		}
+		switch resultCode {
+		case NFC_STATE_ERROR:
+			fmt.Println("Resultcode: error")
+		case NFC_STATE_NEWTAGPRESENT:
+			fmt.Printf("Resultcode: new tag present: %s", tagID)
+		case NFC_STATE_NOTAGPRESENT:
+			fmt.Println("Resultcode: no tag present")
+		case NFC_STATE_TAGREMOVED:
+			fmt.Println("Resultcode: tag removed")
+		case NFC_STATE_TAGSTILLPRESENT:
+			fmt.Printf("Resultcode: tag still present: %s", tagID)
 
-	if card_id != [10]byte{} {
-		fmt.Printf("card found %#X\n", card_id)
-	} else {
-		fmt.Printf("no card found\n")
+		}
 	}
 }
