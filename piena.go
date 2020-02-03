@@ -90,6 +90,8 @@ func main() {
 	}
 
 	fmt.Println("opened device", pnd, pnd.Connection())
+	pnd.SetPropertyBool(nfc.InfiniteSelect, false)
+	
 	err = pnd.InitiatorDeselectTarget()
 	if err != nil {
 		fmt.Errorf("error deselecting tag", err)
