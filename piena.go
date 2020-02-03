@@ -46,7 +46,7 @@ func getCurrentNFCTagID(pnd *nfc.Device) (int, string, error) {
 				return NFC_STATE_TAGSTILLPRESENT, tagID, nil
 			} // fail, old tag not present anymore.
 			currentNFCTarget = nil
-			return NFC_STATE_TAGREMOVED, "", nil
+			return NFC_STATE_TAGREMOVED, "", result
 		}
 		// no tag present and no old tag.
 		return NFC_STATE_NOTAGPRESENT, "", nil
@@ -87,13 +87,14 @@ func main() {
 		case NFC_STATE_ERROR:
 			fmt.Println("Resultcode: error")
 		case NFC_STATE_NEWTAGPRESENT:
-			fmt.Printf("Resultcode: new tag present: %s", tagID)
+			fmt.Printf("Resultcode: new tag present: %s\n", tagID)
 		case NFC_STATE_NOTAGPRESENT:
 			fmt.Println("Resultcode: no tag present")
 		case NFC_STATE_TAGREMOVED:
 			fmt.Println("Resultcode: tag removed")
+			fmt.Errorf("Response: ", err)
 		case NFC_STATE_TAGSTILLPRESENT:
-			fmt.Printf("Resultcode: tag still present: %s", tagID)
+			fmt.Printf("Resultcode: tag still present: %s\n", tagID)
 
 		}
 	}
