@@ -19,14 +19,14 @@ func get_card(pnd *nfc.Device) ([10]byte, error) {
 	for {
 		fmt.Printf("check card 1\n")
 		targets, err := pnd.InitiatorListPassiveTargets(m)
+		fmt.Println(targets)
 		if err != nil {
 			return [10]byte{}, fmt.Errorf("listing available nfc targets", err)
 		}
 
 		for _, t := range targets {
-			fmt.Printf("check card 2\n")
 			if card, ok := t.(*nfc.ISO14443aTarget); ok {
-				fmt.Printf("card found %#X\n", card)
+				fmt.Printf("card found %#X\n", card.UID)
 				//return card.UID, nil
 			} else {
 				fmt.Printf("card not found\n")
