@@ -28,6 +28,22 @@ func toString(t nfc.Target) (string, error) {
 	return "", errors.New("error converting target to string")
 }
 
+func altNFC(pnd *nfc.Device) (int, string, error) {
+	target, _, err := pnd.InitiatorSelectPassiveTarget(nfcModulationType, nil)
+	if err != nil {
+		return NFC_STATE_ERROR, "", err
+	}
+	if target == nil {
+		return NFC_STATE_ERROR, "", errors.New("returned target was nil")
+	}
+	tagID, err := toString(target)
+	if err != nil {
+		return NFC_STATE_ERROR, "", err
+	}
+	return NFC_STATE_NEWTAGPRESENT, tagID, nil
+}
+
+
 func getCurrentNFCTagID(pnd *nfc.Device) (int, string, error) {
 	targets, err := pnd.InitiatorListPassiveTargets(nfcModulationType)
 	if err != nil {
@@ -98,7 +114,8 @@ func main() {
 	}
 
 	for {
-		resultCode, tagID, err := getCurrentNFCTagID(&pnd)
+		//resultCode, tagID, err := getCurrentNFCTagID(&pnd)
+		resultCode, tagID, err := altNFC(&pnd)
 		if err != nil {
 			fmt.Errorf("failed to query reader", err)
 		}
