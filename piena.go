@@ -6,7 +6,6 @@ import (
 	"log"
 
 	"github.com/fuzxxl/nfc/2.0/nfc"
-	"rsc.io/quote"
 )
 
 const (
