@@ -40,6 +40,7 @@ func altNFC(pnd *nfc.Device) (int, string, error) {
 	if err != nil {
 		return NFC_STATE_ERROR, "", err
 	}
+	fmt.Printf("Modulation type: %d", target.Modulation().Type)
 	return NFC_STATE_NEWTAGPRESENT, tagID, nil
 }
 
