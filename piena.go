@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"nfc"
+	"github.com/michaelkleinhenz/piena/nfc"
 )
 
 const (
@@ -29,7 +29,7 @@ func toString(t nfc.Target) (string, error) {
 }
 
 func altNFC(pnd *nfc.Device) (int, string, error) {
-	target, _, err := pnd.InitiatorSelectPassiveTarget(nfcModulationType, nil)
+	target, err := pnd.InitiatorSelectPassiveTarget(nfcModulationType, nil)
 	if currentNFCTarget != nil {
 		result := pnd.InitiatorTargetIsPresent(currentNFCTarget)
 		fmt.Println("PREVIOUS DETECTED")	
@@ -84,8 +84,7 @@ func getCurrentNFCTagID(pnd *nfc.Device) (int, string, error) {
 		uID := (currentNFCTarget.(*nfc.ISO14443aTarget)).UID
 		fmt.Println(uID)
 		fmt.Println("a1")
-		currentNFCTarget, n, err := pnd.InitiatorSelectPassiveTarget(nfcModulationType, uID[:])
-		fmt.Printf("FOUND %d",n)
+		currentNFCTarget, err := pnd.InitiatorSelectPassiveTarget(nfcModulationType, uID[:])
 		fmt.Println("a2")
 		tagID, err := toString(currentNFCTarget)
 		if err != nil {
