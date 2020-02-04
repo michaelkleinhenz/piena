@@ -9,11 +9,9 @@ import (
 )
 
 const (
-	NFC_STATE_ERROR           = -1
-	NFC_STATE_TAGREMOVED      = 0
-	NFC_STATE_TAGSTILLPRESENT = 1
-	NFC_STATE_NEWTAGPRESENT   = 2
-	NFC_STATE_NOTAGPRESENT    = 3
+	NFC_STATE_ERROR = -1
+	NFC_STATE_TAGNOTPRESENT = 0
+	NFC_STATE_TAGPRESENT = 1
 )
 
 var (
@@ -23,32 +21,24 @@ var (
 
 func toString(t nfc.Target) (string, error) {
 	if card, ok := t.(*nfc.ISO14443aTarget); ok {
-		return fmt.Sprintf("%#X", card.UID), nil
+		return fmt.Sprintf("%#x", card.UID), nil
 	} 
 	return "", errors.New("error converting target to string")
 }
 
 func getCurrentNFCTagID(pnd *nfc.Device) (int, string, error) {
 	target, err := pnd.InitiatorSelectPassiveTarget(nfcModulationType, nil)
-	/*
-	if currentNFCTarget != nil {
-		result := pnd.InitiatorTargetIsPresent(currentNFCTarget)
-		fmt.Println("PREVIOUS DETECTED")	
-		fmt.Println(result)	
-	}
-	*/
 	if err != nil {
 		return NFC_STATE_ERROR, "", err
 	}
 	if target == nil {
-		return NFC_STATE_ERROR, "", errors.New("returned target was nil")
+		return NFC_STATE_TAGNOTPRESENT, "", nil
 	}
 	tagID, err := toString(target)
 	if err != nil {
 		return NFC_STATE_ERROR, "", err
 	}
-	currentNFCTarget = target
-	return NFC_STATE_NEWTAGPRESENT, tagID, nil
+	return NFC_STATE_TAGPRESENT, tagID, nil
 }
 
 func main() {
@@ -68,7 +58,7 @@ func main() {
 	fmt.Println("opened device", pnd, pnd.Connection())
 	pnd.SetPropertyBool(nfc.InfiniteSelect, false)
 	
-	err = pnd.InitiatorDeselectTarget()
+	//err = pnd.InitiatorDeselectTarget()
 	if err != nil {
 		fmt.Errorf("error deselecting tag", err)
 	}
