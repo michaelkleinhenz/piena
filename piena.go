@@ -28,13 +28,15 @@ func toString(t nfc.Target) (string, error) {
 	return "", errors.New("error converting target to string")
 }
 
-func altNFC(pnd *nfc.Device) (int, string, error) {
+func getCurrentNFCTagID(pnd *nfc.Device) (int, string, error) {
 	target, err := pnd.InitiatorSelectPassiveTarget(nfcModulationType, nil)
+	/*
 	if currentNFCTarget != nil {
 		result := pnd.InitiatorTargetIsPresent(currentNFCTarget)
 		fmt.Println("PREVIOUS DETECTED")	
 		fmt.Println(result)	
 	}
+	*/
 	if err != nil {
 		return NFC_STATE_ERROR, "", err
 	}
@@ -47,53 +49,6 @@ func altNFC(pnd *nfc.Device) (int, string, error) {
 	}
 	currentNFCTarget = target
 	return NFC_STATE_NEWTAGPRESENT, tagID, nil
-}
-
-
-func getCurrentNFCTagID(pnd *nfc.Device) (int, string, error) {
-	targets, err := pnd.InitiatorListPassiveTargets(nfcModulationType)
-	if err != nil {
-		return NFC_STATE_ERROR, "", err
-	}
-	if len(targets) == 0 { // no tag or tag still present.
-		// check if old tag is still present
-		if currentNFCTarget != nil {
-			// select the current tag.
-			fmt.Println("x1")
-			result := pnd.InitiatorTargetIsPresent(currentNFCTarget)
-			fmt.Println("x2")
-			if result == nil { // success, old tag still present.
-				tagID, err := toString(currentNFCTarget)
-				if err != nil {
-					return NFC_STATE_ERROR, "", err
-				}
-				return NFC_STATE_TAGSTILLPRESENT, tagID, nil
-			} // fail, old tag not present anymore.
-			currentNFCTarget = nil
-			err = pnd.InitiatorDeselectTarget()
-			if err != nil {
-				fmt.Errorf("error deselecting tag", err)
-			}
-			return NFC_STATE_TAGREMOVED, "", result
-		}
-		// no tag present and no old tag.
-		return NFC_STATE_NOTAGPRESENT, "", nil
-	} else if len(targets) == 1 { // one new tag detected.
-		currentNFCTarget = targets[0]
-		fmt.Println(currentNFCTarget)
-		uID := (currentNFCTarget.(*nfc.ISO14443aTarget)).UID
-		fmt.Println(uID)
-		fmt.Println("a1")
-		currentNFCTarget, err := pnd.InitiatorSelectPassiveTarget(nfcModulationType, uID[:])
-		fmt.Println("a2")
-		tagID, err := toString(currentNFCTarget)
-		if err != nil {
-			return NFC_STATE_ERROR, "", err
-		}
-		return NFC_STATE_NEWTAGPRESENT, tagID, nil
-	}
-	// multiple tags detected.
-	return NFC_STATE_ERROR, "", err
 }
 
 func main() {
@@ -120,7 +75,7 @@ func main() {
 
 	for {
 		//resultCode, tagID, err := getCurrentNFCTagID(&pnd)
-		resultCode, tagID, err := altNFC(&pnd)
+		resultCode, tagID, err := getCurrentNFCTagID(&pnd)
 		if err != nil {
 			fmt.Errorf("failed to query reader", err)
 		}
@@ -133,7 +88,6 @@ func main() {
 			fmt.Println("Resultcode: no tag present")
 		case NFC_STATE_TAGREMOVED:
 			fmt.Println("Resultcode: tag removed")
-			fmt.Println("Response: ", err)
 		case NFC_STATE_TAGSTILLPRESENT:
 			fmt.Printf("Resultcode: tag still present: %s\n", tagID)
 
