@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"log"
 
-	"github.com/fuzxxl/nfc/2.0/nfc"
+	"nfc"
 )
 
 const (
