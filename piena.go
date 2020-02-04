@@ -72,15 +72,10 @@ func main() {
 		switch resultCode {
 		case NFC_STATE_ERROR:
 			fmt.Println("Resultcode: error")
-		case NFC_STATE_NEWTAGPRESENT:
-			fmt.Printf("Resultcode: new tag present: %s\n", tagID)
-		case NFC_STATE_NOTAGPRESENT:
+		case NFC_STATE_TAGNOTPRESENT:
 			fmt.Println("Resultcode: no tag present")
-		case NFC_STATE_TAGREMOVED:
-			fmt.Println("Resultcode: tag removed")
-		case NFC_STATE_TAGSTILLPRESENT:
-			fmt.Printf("Resultcode: tag still present: %s\n", tagID)
-
+		case NFC_STATE_TAGPRESENT:
+			fmt.Printf("Resultcode: tag present: %s\n", tagID)
 		}
 	}
 }
