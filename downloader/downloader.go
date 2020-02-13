@@ -7,72 +7,34 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/michaelkleinhenz/piena/base"
 )
-
-// AudiobookTrack describes a track in the audiobook.
-type AudiobookTrack struct {
-	ord      int    `json:"ord"`
-	Title    string `json:"title"`
-	Filename string `json:"filename"`
-}
-
-// Audiobook describes an audiobook.
-type Audiobook struct {
-	ID     			string 			`json:"id"`
-	Title  			string 			`json:"title"`
-	archiveFile string 			`json:"archiveFile"`
-	Tracks []AudiobookTrack `json:"tracks"`
-}
-
-// AudiobookDirectory describes an audiobook directory.
-type AudiobookDirectory struct {
-	ID      string      `json:"id"`
-	BaseURL string      `json:"baseURL"`
-	Books   []Audiobook `json:"books"`
-}
 
 // Downloader is the downloader for audiobooks.
 type Downloader struct {
-	directory *AudiobookDirectory
+	libraryPath string
+	directoryURL string
+	directory *base.AudiobookDirectory
 }
 
-const (
-	directoryURL = "http://some.directory.service/directory.json"
-	libraryPath = "/tmp/library"
-)
-
 // NewDownloader returns a new downloader instance.
-func NewDownloader(url string) (*Downloader, error) {
+func NewDownloader(libraryPath string, directoryURL string) (*Downloader, error) {
 	downloader := new(Downloader)
-
-	/*
-			 fileUrl := "https://golangcode.com/images/avatar.jpg"
-
-		    if err := DownloadFile("avatar.jpg", fileUrl); err != nil {
-		        panic(err)
-		    }
-	*/
-
-	/*
-			 files, err := Unzip("done.zip", "output-folder")
-		    if err != nil {
-		        log.Fatal(err)
-		    }
-	*/
-
+	downloader.libraryPath = libraryPath
+	downloader.directoryURL = directoryURL
 	return downloader, nil
 }
 
 // GetAudiobook checks if the audiobook with the given ID is already
 // available and (if not) fetches it from the server. Returns nil
 // if audiobook is downloaded and available.
-func (c *Downloader) GetAudiobook(ID string) (*Audiobook, error) {
-	directoryPath, err := c.downloadFile(directoryURL)
+func (c *Downloader) GetAudiobook(ID string) (*base.Audiobook, error) {
+	directoryPath, err := c.downloadFile(c.directoryURL)
 	if err != nil && c.directory == nil {
 		return nil, err
 	}
@@ -99,12 +61,12 @@ func (c *Downloader) GetAudiobook(ID string) (*Audiobook, error) {
 	return nil, errors.New("audiobook id not found in directory: " + ID)
 }
 
-func (c *Downloader) downloadAudiobook(audiobook *Audiobook, baseURL string) error {
+func (c *Downloader) downloadAudiobook(audiobook *base.Audiobook, baseURL string) error {
 	audiobookPath, err := c.getAudiobookPath(audiobook)
 	if err != nil {
 		return err
 	}
-	archivePath, err := c.downloadFile(baseURL + "/" + audiobook.archiveFile)
+	archivePath, err := c.downloadFile(baseURL + "/" + audiobook.ArchiveFile)
 	defer c.deleteFile(archivePath)
 	if err != nil {
 		return err
@@ -120,7 +82,7 @@ func (c *Downloader) downloadAudiobook(audiobook *Audiobook, baseURL string) err
 	return nil
 }
 
-func (c* Downloader) isAudiobookAlreadyExisting(audiobook *Audiobook) (bool, error) {
+func (c* Downloader) isAudiobookAlreadyExisting(audiobook *base.Audiobook) (bool, error) {
 	if audiobook == nil {
 		return false, errors.New("given audiobook is nil")
 	}
@@ -149,18 +111,18 @@ func (c* Downloader) isAudiobookAlreadyExisting(audiobook *Audiobook) (bool, err
 	return true, nil
 }
 
-func (c *Downloader) getAudiobookPath(audiobook *Audiobook) (string, error) {
+func (c *Downloader) getAudiobookPath(audiobook *base.Audiobook) (string, error) {
 	if audiobook == nil {
 		return "", errors.New("given audiobook is nil")
 	}
-	return libraryPath + "/" + audiobook.Title, nil
+	return c.libraryPath + "/" + audiobook.Title, nil
 }
 
-func (c *Downloader) getTrackPath(audiobook *Audiobook, track *AudiobookTrack) (string, error) {
+func (c *Downloader) getTrackPath(audiobook *base.Audiobook, track *base.AudiobookTrack) (string, error) {
 	if audiobook == nil || track == nil {
 		return "", errors.New("given audiobook or track is nil")
 	}
-	return libraryPath + "/" + audiobook.Title + "/" + track.Filename, nil
+	return c.libraryPath + "/" + audiobook.Title + "/" + track.Filename, nil
 }
 
 func (c *Downloader) checkExistence(filepath string) bool {
@@ -170,14 +132,14 @@ func (c *Downloader) checkExistence(filepath string) bool {
 	return false
 }
 
-func (c *Downloader) unmarshallDirectoryFile(filepath string) (*AudiobookDirectory, error) {
+func (c *Downloader) unmarshallDirectoryFile(filepath string) (*base.AudiobookDirectory, error) {
 	jsonFile, err := os.Open(filepath)
 	if err != nil {
 		return nil, err
 	}
 	defer jsonFile.Close()
 	byteValue, _ := ioutil.ReadAll(jsonFile)
-	directory := new(AudiobookDirectory)
+	directory := new(base.AudiobookDirectory)
 	json.Unmarshal(byteValue, directory)
 	c.directory = directory
 	return directory, nil
@@ -185,10 +147,6 @@ func (c *Downloader) unmarshallDirectoryFile(filepath string) (*AudiobookDirecto
 
 func (c *Downloader) createDirectory(path string) error {
 	return os.Mkdir(path, 0755)
-}
-
-func (c *Downloader) moveFile(oldLocation string, newLocation string) error {
-	return os.Rename(oldLocation, newLocation)
 }
 
 func (c *Downloader) deleteFile(filepath string) error {
@@ -212,7 +170,7 @@ func (c *Downloader) downloadFile(url string) (string, error) {
 	}
 	defer out.Close()
 	_, err = io.Copy(out, resp.Body)
-	return "", err
+	return out.Name(), err
 }
 
 func (c *Downloader) unzip(src string, dest string) ([]string, error) {

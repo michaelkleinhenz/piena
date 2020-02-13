@@ -1,6 +1,10 @@
 package mopidy
 
-import rpc "github.com/ybbus/jsonrpc"
+import (
+	rpc "github.com/ybbus/jsonrpc"
+
+	"github.com/michaelkleinhenz/piena/base"
+)
 
 // Client is the client for the audio service.
 type Client struct {
@@ -34,7 +38,7 @@ func (c *Client) Close() {
 }
 
 // Play starts the album in the given path.
-func (c *Client) Play(directory string) error {
+func (c *Client) start(audiobook *base.Audiobook) error {
 	return nil
 }
 
@@ -44,7 +48,7 @@ func (c *Client) Stop() error {
 }
 
 // Continue resumes playback of a prior album.
-func (c *Client) Continue() error {
+func (c *Client) Continue(audiobook *base.Audiobook, ord int) error {
 	return nil
 }
 
