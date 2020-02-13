@@ -61,28 +61,28 @@ func TestDownloader(t *testing.T) {
             w.Write(zipContent)    
         }
 	}))
-    defer ts.Close()
-    directory.BaseURL = ts.URL
-    // start test
-    downloader, err := NewDownloader(path, ts.URL + "/directory.json")
+	defer ts.Close()
+	directory.BaseURL = ts.URL
+	// start test
+	downloader, err := NewDownloader(path, ts.URL + "/directory.json")
 	assert.NoError(t, err)
-    audiobook, err := downloader.GetAudiobook("testBook")
-    assert.NoError(t, err)
-    assert.NotNil(t, audiobook)
-    // check if book is available
-    assert.DirExists(t, path + "/" + directory.Books[0].Title)
-    for _, entry := range directory.Books[0].Tracks {
-        assert.FileExists(t, path + "/" + directory.Books[0].Title + "/" + entry.Filename)
-    }
-    // download it again
-    audiobook, err = downloader.GetAudiobook("testBook")
-    assert.NoError(t, err)
-    assert.NotNil(t, audiobook)
-    // check if book is available
-    assert.DirExists(t, path + "/" + directory.Books[0].Title)
-    for _, entry := range directory.Books[0].Tracks {
-        assert.FileExists(t, path + "/" + directory.Books[0].Title + "/" + entry.Filename)
-    }
+	audiobook, err := downloader.GetAudiobook("testBook")
+	assert.NoError(t, err)
+	assert.NotNil(t, audiobook)
+	// check if book is available
+	assert.DirExists(t, path + "/" + directory.Books[0].Title)
+	for _, entry := range directory.Books[0].Tracks {
+			assert.FileExists(t, path + "/" + directory.Books[0].Title + "/" + entry.Filename)
+	}
+	// download it again
+	audiobook, err = downloader.GetAudiobook("testBook")
+	assert.NoError(t, err)
+	assert.NotNil(t, audiobook)
+	// check if book is available
+	assert.DirExists(t, path + "/" + directory.Books[0].Title)
+	for _, entry := range directory.Books[0].Tracks {
+			assert.FileExists(t, path + "/" + directory.Books[0].Title + "/" + entry.Filename)
+	}
 }
 
 func checkExistence(filepath string) bool {
