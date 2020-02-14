@@ -27,6 +27,7 @@ func TestDownloader(t *testing.T) {
 		Books: []base.Audiobook{
 			base.Audiobook{
 				ID:          "testBook",
+				Artist: 		 "John Doe",
 				Title:       "The Test Book",
 				ArchiveFile: "archive.zip",
 				Tracks: []base.AudiobookTrack{
