@@ -10,6 +10,8 @@ import (
 // AudiobookState stores the current state of an audiobook
 type AudiobookState struct {
 	ID         string `json:"id"`
+	Artist		 string `json:"artist"`
+	Title			 string `json:"string"`
 	CurrentOrd int    `json:"currentOrd"`
 }
 
@@ -36,8 +38,29 @@ func NewState(filepath string) (*State, error) {
 	return state, nil	
 }
 
+// Exists checks if a state exists.
+func (s *State) Exists(audiobookID string) bool {
+	for idx := range s.states {
+		if s.states[idx].ID == audiobookID {
+			return true
+		}
+	}
+	return false
+}
+
+// SetOrd stores a state.
+func (s *State) SetOrd(audiobookID string, ord int) error {
+	for idx := range s.states {
+		if s.states[idx].ID == audiobookID {
+			s.states[idx].CurrentOrd = ord
+			return s.store()
+		}
+	}
+	return errors.New("[store] audiobook not known, store inital record first with Set()")
+}
+
 // Set stores a state.
-func (s *State) Set(audiobookID string, ord int) error {
+func (s *State) Set(audiobookID string, artist string, title string, ord int) error {
 	for idx := range s.states {
 		if s.states[idx].ID == audiobookID {
 			s.states[idx].CurrentOrd = ord
@@ -46,6 +69,8 @@ func (s *State) Set(audiobookID string, ord int) error {
 	}
 	s.states = append(s.states, AudiobookState{
 		ID: audiobookID,
+		Artist: artist,
+		Title: title,
 		CurrentOrd: ord,
 	})
 	return s.store()
@@ -58,7 +83,17 @@ func (s *State) Get(audiobookID string) (int, error) {
 			return entry.CurrentOrd, nil
 		}
 	}
-	return -1, errors.New("audiobook not found in state store")
+	return -1, errors.New("[store] audiobook not found in state store")
+}
+
+// GetArtistAndTitle retrieves artist and title from the ID.
+func (s *State) GetArtistAndTitle(audiobookID string) (string, string, error) {
+	for _, entry := range s.states {
+		if entry.ID == audiobookID {
+			return entry.Artist, entry.Title, nil
+		}
+	}
+	return "", "", errors.New("audiobook not found in state store")
 }
 
 func (s *State) store() error {

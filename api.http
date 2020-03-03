@@ -1,0 +1,26 @@
+curl -X POST -H Content-Type:application/json -d '{
+  "method": "core.library.search",
+  "jsonrpc": "2.0",
+  "params": {
+    "query": { "artist": ["Jan Tenner"], "album": ["01 - Ein neuer Anfang"]},
+    "exact": true
+  },
+  "id": 1
+}' http://192.168.178.98:6680/mopidy/rpc
+
+###
+
+curl -X POST -H Content-Type:application/json -d '{
+  "method":"core.library.browse",
+  "params":{"uri":""},
+  "jsonrpc":"2.0",
+  "id":29
+}' http://192.168.178.98:6680/mopidy/rpc
+
+###
+
+curl -X POST -H Content-Type:application/json -d '{
+  "method": "core.library.refresh",
+  "jsonrpc": "2.0",
+  "id": 1
+}' http://192.168.178.98:6680/mopidy/rpc

@@ -82,16 +82,31 @@ func tagRemoved() error {
 	if err != nil {
 		log.Printf("[main] error getting current track: %s\n", err.Error())
 	}
-	state.Set(TODO_ID, currentTrack.Ord)
+	id, err := downloader.GetID(currentTrack.Album.Artist, currentTrack.Album.Name)
+	if err != nil {
+		log.Printf("[main] error getting ID for track: %s\n", err.Error())
+	}
+	if state.Exists(id) {
+		err = state.SetOrd(id, currentTrack.Ord)
+		if err != nil {
+			log.Printf("[main] error storing updated track state: %s\n", err.Error())
+		}	
+	} else {
+		err = state.Set(id, currentTrack.Album.Artist, currentTrack.Album.Name, currentTrack.Ord)
+		if err != nil {
+			log.Printf("[main] error storing initial track state: %s\n", err.Error())
+		}	
+	}
 	return player.Stop()
 }
 
 func tagDetected(ID string) error {
 	// TODO:retrieve book from ID
+	// TODO:return if tag not recognized
+	// TODO:if new, store initial dataset in store, else retrieve position
 	player.Stop()
 	player.ClearTracklist()
 	// TODO:put tracks into tracklist
-	// TODO:retrieve stored position
-	// TODO:start playback from position
+	// TODO:start playback from retrieved position (or beginning)
 	return nil
 }

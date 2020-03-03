@@ -34,6 +34,7 @@ func NewDownloader(libraryPath string, directoryURL string) (*Downloader, error)
 // available and (if not) fetches it from the server. Returns nil
 // if audiobook is downloaded and available.
 func (c *Downloader) GetAudiobook(ID string) (*base.Audiobook, error) {
+	// TODO: registry should be cached to make GetID() work offline.
 	directoryPath, err := c.downloadFile(c.directoryURL)
 	if err != nil && c.directory == nil {
 		return nil, err
@@ -59,6 +60,25 @@ func (c *Downloader) GetAudiobook(ID string) (*base.Audiobook, error) {
 		}
 	}
 	return nil, errors.New("audiobook id not found in directory: " + ID)
+}
+
+// GetID retrieves the ID for a given set of artist and title.
+func (c *Downloader) GetID(artist string, title string) (string, error) {
+	// TODO: read from cache, see above
+	directoryPath, err := c.downloadFile(c.directoryURL)
+	if err != nil && c.directory == nil {
+		return "", err
+	}
+	directory, err := c.unmarshallDirectoryFile(directoryPath)
+	if err != nil {
+		return "", err
+	}
+	for _, entry := range directory.Books {
+		if entry.Artist == artist && entry.Title == title {
+			return entry.ID, nil
+		}
+	}
+	return "", errors.New("audiobook not found in directory")
 }
 
 func (c *Downloader) downloadAudiobook(audiobook *base.Audiobook, baseURL string) error {
