@@ -101,12 +101,51 @@ func tagRemoved() error {
 }
 
 func tagDetected(ID string) error {
-	// TODO:retrieve book from ID
-	// TODO:return if tag not recognized
-	// TODO:if new, store initial dataset in store, else retrieve position
+	// retrieve book from ID
+	// TODO: display retrieval progress on UX
+	audiobook, err := downloader.GetAudiobook(ID)
+	if err != nil {
+		log.Printf("[main] error retrieving audiobook: %s\n", err.Error())
+		return err
+	}	
+	// if new, store initial dataset in store, else retrieve position
+	ord := 1
+	if !state.Exists(ID) {
+		state.Set(ID, audiobook.Artist, audiobook.Title, 1)
+	} else {
+		ord, err := state.Get(ID)
+		if err != nil {
+			log.Printf("[main] error retrieving audiobook state: %s\n", err.Error())
+			// fallback: start over from track 1
+			state.Set(ID, audiobook.Artist, audiobook.Title, ord)
+		}		
+	}
+	// stop current playback and clear tracklist
 	player.Stop()
 	player.ClearTracklist()
-	// TODO:put tracks into tracklist
-	// TODO:start playback from retrieved position (or beginning)
+	// add new tracks to tracklist from the retrieved ord
+	// TODO: make sure tracks are now in the library, refresh if needed
+	err = player.RefreshLibrary()
+	if err != nil {
+		log.Printf("[main] error refreshing track library: %s\n", err.Error())
+		return err
+	}
+	tracklist := string[]{}
+	for idx, track := range(audiobook.Tracks) {
+		if idx >= ord {
+			tracklist = append(tracklist, track.Filename)
+		}
+	}
+	err = player.AddToTracklist(tracklist)
+	if err != nil {
+		log.Printf("[main] error adding tracks to tracklist: %s\n", err.Error())
+		return err
+	}
+	// start playback
+	err = player.Play()
+	if err != nil {
+		log.Printf("[main] error starting playback: %s\n", err.Error())
+		return err
+	}
 	return nil
 }
