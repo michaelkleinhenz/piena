@@ -10,7 +10,7 @@ type AudiobookTrack struct {
 // Audiobook describes an audiobook.
 type Audiobook struct {
 	ID     			string 			`json:"id"`
-	Artist			string			`json:"Artist"`
+	Artist			string			`json:"artist"`
 	Title  			string 			`json:"title"`
 	ArchiveFile string 			`json:"archiveFile"`
 	Tracks []AudiobookTrack `json:"tracks"`

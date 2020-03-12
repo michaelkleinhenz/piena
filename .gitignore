@@ -5,6 +5,7 @@
 *.so
 *.dylib
 .cache
+state.json
 
 main
 piena

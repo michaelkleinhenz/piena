@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"io/ioutil"
+	"log"
 	"os"
 )
 
@@ -11,7 +12,7 @@ import (
 type AudiobookState struct {
 	ID         string `json:"id"`
 	Artist		 string `json:"artist"`
-	Title			 string `json:"string"`
+	Title			 string `json:"title"`
 	CurrentOrd int    `json:"currentOrd"`
 }
 
@@ -52,6 +53,7 @@ func (s *State) Exists(audiobookID string) bool {
 func (s *State) SetOrd(audiobookID string, ord int) error {
 	for idx := range s.states {
 		if s.states[idx].ID == audiobookID {
+			log.Printf("[state] updating ord %d for audiobook %s", ord, audiobookID)
 			s.states[idx].CurrentOrd = ord
 			return s.store()
 		}
@@ -61,6 +63,7 @@ func (s *State) SetOrd(audiobookID string, ord int) error {
 
 // Set stores a state.
 func (s *State) Set(audiobookID string, artist string, title string, ord int) error {
+	log.Printf("[state] storing ord %d for audiobook %s", ord, audiobookID)
 	for idx := range s.states {
 		if s.states[idx].ID == audiobookID {
 			s.states[idx].CurrentOrd = ord
@@ -75,6 +78,19 @@ func (s *State) Set(audiobookID string, artist string, title string, ord int) er
 	})
 	return s.store()
 }
+
+// Remove removes a state.
+func (s *State) Remove(audiobookID string) error {
+	for idx := range s.states {
+		if s.states[idx].ID == audiobookID {
+			log.Printf("[state] removing state for audiobook %s", audiobookID)
+			s.states = append(s.states[:idx], s.states[idx+1:]...)
+			return s.store()
+		}
+	}
+	return errors.New("[store] audiobook not found in state store")
+}
+
 
 // Get retrieves a state.
 func (s *State) Get(audiobookID string) (int, error) {

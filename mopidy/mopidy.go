@@ -1,6 +1,9 @@
 package mopidy
 
 import (
+	"log"
+	"os/exec"
+
 	rpc "github.com/ybbus/jsonrpc"
 )
 
@@ -23,7 +26,6 @@ type Artist struct {
 
 // Album represents an album.
 type Album struct {
-	Artists []Artist `json:"artists"`
 	Name string `json:"name"`
 	NumTracks int `json:"num_tracks"`
 }
@@ -31,9 +33,9 @@ type Album struct {
 // Track represents a single track.
 type Track struct {
 	Album Album `json:"album"`
+	Artists []Artist `json:"artists"`
 	Name string `json:"name"`
 	URI string `json:"uri"`
-	Ord int `json:"track_no"`
 }
 
 type responseSearchResult struct {
@@ -81,6 +83,7 @@ func (c *Client) AudiobookAvailable(artist string, album string) (bool, int, err
 
 // AddToTracklist adds the given track URIs to the tracklist.
 func (c *Client) AddToTracklist(tracks []string) error {
+	log.Printf("[player] adding to tracklist: %s", tracks)
 	_, err := c.rpcClient.Call("core.tracklist.add", &payloadTracklistAdd{tracks})
 	return err
 }
@@ -123,7 +126,7 @@ func (c *Client) GetCurrentTrack() (*Track, error) {
 		return nil, err
 	}
 	var result *Track
-	err = resp.GetObject(&result)
+	err = resp.GetObject(&result)	
 	if err != nil || result == nil {
 		return nil, err
 	}
@@ -132,8 +135,11 @@ func (c *Client) GetCurrentTrack() (*Track, error) {
 
 // RefreshLibrary refreshes the local library.
 func (c *Client) RefreshLibrary() error {
-	// TODO: do system exec of "mopidyctl local scan" as root
-	_, err := c.rpcClient.Call("core.library.refresh")
+	err := exec.Command("sudo", "mopidyctl", "local", "scan").Run()
+	if err != nil {
+		return err
+	}
+	_, err = c.rpcClient.Call("core.library.refresh")
 	return err
 }
 

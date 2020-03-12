@@ -67,7 +67,7 @@ func TestDownloader(t *testing.T) {
 	// start test
 	downloader, err := NewDownloader(path, ts.URL + "/directory.json")
 	assert.NoError(t, err)
-	audiobook, err := downloader.GetAudiobook("testBook")
+	audiobook, _, err := downloader.GetAudiobook("testBook")
 	assert.NoError(t, err)
 	assert.NotNil(t, audiobook)
 	// check if book is available
@@ -76,7 +76,7 @@ func TestDownloader(t *testing.T) {
 			assert.FileExists(t, path + "/" + directory.Books[0].Title + "/" + entry.Filename)
 	}
 	// download it again
-	audiobook, err = downloader.GetAudiobook("testBook")
+	audiobook, _, err = downloader.GetAudiobook("testBook")
 	assert.NoError(t, err)
 	assert.NotNil(t, audiobook)
 	// check if book is available
