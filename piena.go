@@ -29,7 +29,7 @@ func main() {
 	defer nfcReader.Close()
 
 	// initialize mopidy connection.
-	player, err = m.NewClient("http://service/rpc")
+	player, err = m.NewClient("http://localhost:6680/mopidy/rpc")
 	err = player.RefreshLibrary()
 	if err != nil {
 		log.Fatalf("[main] error initializing mopidy connector: %s\n", err.Error())
@@ -82,7 +82,7 @@ func tagRemoved() error {
 	if err != nil {
 		log.Printf("[main] error getting current track: %s\n", err.Error())
 	}
-	id, err := downloader.GetID(currentTrack.Album.Artist, currentTrack.Album.Name)
+	id, err := downloader.GetID((*currentTrack).Album.Artists[0].Name, (*currentTrack).Album.Name)
 	if err != nil {
 		log.Printf("[main] error getting ID for track: %s\n", err.Error())
 	}
@@ -92,7 +92,7 @@ func tagRemoved() error {
 			log.Printf("[main] error storing updated track state: %s\n", err.Error())
 		}	
 	} else {
-		err = state.Set(id, currentTrack.Album.Artist, currentTrack.Album.Name, currentTrack.Ord)
+		err = state.Set(id, (*currentTrack).Album.Artists[0].Name, (*currentTrack).Album.Name, (*currentTrack).Ord)
 		if err != nil {
 			log.Printf("[main] error storing initial track state: %s\n", err.Error())
 		}	
@@ -130,7 +130,7 @@ func tagDetected(ID string) error {
 		log.Printf("[main] error refreshing track library: %s\n", err.Error())
 		return err
 	}
-	tracklist := string[]{}
+	tracklist := []string{}
 	for idx, track := range(audiobook.Tracks) {
 		if idx >= ord {
 			tracklist = append(tracklist, track.Filename)
