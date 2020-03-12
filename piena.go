@@ -24,7 +24,7 @@ var (
 
 func main() {
 	playerPtr := flag.String("playerurl", "http://localhost:6680/mopidy/rpc", "Mopidy RPC endpoint address")
-	libraryURLPtr := flag.String("libraryurl", "https://tiena-files.s3-eu-west-1.amazonaws.com/directory.json", "Audiobook library URL")
+	libraryURLPtr := flag.String("libraryurl", "http://d3aj4nh2mw9ghj.cloudfront.net/directory.json", "Audiobook library URL")
 	libraryDirectoryPtr := flag.String("librarypath", "/home/pi/audiobooks", "Audiobook local library path")
 	flag.Parse()
 	
@@ -129,7 +129,7 @@ func main() {
 			log.Printf("[main] tag detected: %s", event.ID)
 			err = tagDetected(event.ID)
 			if err != nil {
-				log.Printf("[main] error when processing detected tag: %s", err.Error())
+				log.Printf("[main] error when processing detected tag %s: %s", event.ID, err.Error())
 			}
 		}
 	}

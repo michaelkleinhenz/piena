@@ -212,8 +212,11 @@ func (c *Downloader) downloadFile(url string) (string, error) {
 	hashedFilename := c.hashURL(url)
 	tmpfn := filepath.Join(c.tempDir, hashedFilename)
 	log.Printf("[downloader] downloading from %s", url)
-	resp, err := http.Get(url)
-	if err != nil {
+	client := &http.Client{}
+	req, err := http.NewRequest("GET", url, nil)
+	req.SetBasicAuth(os.Getenv("PIENA_USER"), os.Getenv("PIENA_PASS"))
+	resp, err := client.Do(req)
+	if err != nil || resp.StatusCode != 200 {
 		// error, we try to get a cached version
 		log.Printf("[downloader] downloading %s failed, trying to use a cached version of the file", url)
 		if c.checkExistence(tmpfn) {
