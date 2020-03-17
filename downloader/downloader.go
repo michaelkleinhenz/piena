@@ -42,7 +42,6 @@ func NewDownloader(libraryPath string, directoryURL string) (*Downloader, error)
 // available and (if not) fetches it from the server. Returns nil
 // if audiobook is downloaded and available.
 func (c *Downloader) GetAudiobook(ID string) (*base.Audiobook, bool, error) {
-	// TODO: registry should be cached to make GetID() work offline.
 	log.Printf("[downloader] retrieving audiobook %s", ID)
 	directoryPath, err := c.downloadFile(c.directoryURL)
 	if err != nil && c.directory == nil {
@@ -73,7 +72,6 @@ func (c *Downloader) GetAudiobook(ID string) (*base.Audiobook, bool, error) {
 
 // GetID retrieves the ID for a given set of artist and title.
 func (c *Downloader) GetID(artist string, title string) (string, error) {
-	// TODO: read from cache, see above
 	directoryPath, err := c.downloadFile(c.directoryURL)
 	if err != nil && c.directory == nil {
 		return "", err

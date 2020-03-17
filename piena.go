@@ -10,6 +10,7 @@ import (
 	m "github.com/michaelkleinhenz/piena/mopidy"
 	r "github.com/michaelkleinhenz/piena/reader"
 	s "github.com/michaelkleinhenz/piena/state"
+  u "github.com/michaelkleinhenz/piena/uploader"
 )
 
 var (
@@ -26,10 +27,42 @@ func main() {
 	playerPtr := flag.String("playerurl", "http://localhost:6680/mopidy/rpc", "Mopidy RPC endpoint address")
 	libraryURLPtr := flag.String("libraryurl", "http://d3aj4nh2mw9ghj.cloudfront.net/directory.json", "Audiobook library URL")
 	libraryDirectoryPtr := flag.String("librarypath", "/home/pi/audiobooks", "Audiobook local library path")
+	uploadPtr := flag.Bool("upload", false, "Upload audiobook to backend service")
+	uploadFileDir := flag.String("files", "", "Directory with files to be uploaded")
+	uploadArtist := flag.String("artist", "", "Artist for uploaded files")
+	uploadTitle := flag.String("title", "", "Title for uploaded files")
+	uploadID := flag.String("id", "", "ID for uploaded files")
+	uploadFiles := 	flag.String("files", "", "File list for upload")
 	flag.Parse()
 	
 	log.Println("[main] piena starting..")
-	var err error
+  var err error
+
+	// check if we should upload an audiobook.
+	if *uploadPtr {
+		if *uploadArtist == "" || *uploadFileDir == "" || *uploadFiles == "" || *uploadID == "" || *uploadTitle == "" {
+			log.Fatal("[main] Not all required parameters given for file upload")
+		}
+		uploader, err := u.NewUploader()
+		packageFiles, err = uploader.TagRenameFiles(*uploadFileDir, *uploadFiles, *uploadArtist, *uploadTitle)
+		if err != nil {
+			log.Fatalf("[main] error tagging upload files: %s", err.Error())
+		}
+		package, err := uploader.PackageFiles(packageFiles, *uploadArtist, *uploadTitle)
+		if err != nil {
+			log.Fatalf("[main] error packaging upload files: %s", err.Error())
+		}
+		err = uploader.UploadPackageFile(package)
+		if err != nil {
+			log.Fatalf("[main] error uploading package file: %s", err.Error())
+		}
+		err = uploader.UpdateDirectory(package, *uploadID, *uploadArtist, *uploadTitle)
+		if err != nil {
+			log.Fatalf("[main] error updating directory: %s", err.Error())
+		}
+		log.Println("[main] upload completed")
+		return
+	}
 
 	// initialize nfc reader hardware.
 	nfcReader, channel, err = r.NewNfcReader()
