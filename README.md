@@ -10,3 +10,12 @@ Note: add environment variable for access to the basic auth file downloads:
 export PIENA_USER=yourUsername
 export PIENA_PASS=yourPassword
 ```
+
+## Uploader
+
+```
+sudo apt-get install awscli
+aws configure
+export AWS_REGION=YOURREGION
+```
+

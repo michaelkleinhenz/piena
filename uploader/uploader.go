@@ -2,12 +2,21 @@ package uploader
 
 import (
 	"archive/zip"
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
+	"sort"
 
+	"github.com/aws/aws-sdk-go/aws"
+	"github.com/aws/aws-sdk-go/aws/session"
+	"github.com/aws/aws-sdk-go/service/s3"
+	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/michaelkleinhenz/piena/base"
 	id3 "github.com/mikkyang/id3-go"
 	/*
 		"github.com/michaelkleinhenz/piena/base"
@@ -30,11 +39,27 @@ func NewUploader() (*Uploader, error) {
 	return uploader, nil
 }
 
-func (u *Uploader) TagRenameFiles(uploadFileDir string, uploadFiles []string, uploadArtist string, uploadTitle string) ([]string, error) {
+func (u *Uploader) TagRenameFiles(uploadFileDir string, uploadArtist string, uploadTitle string) ([]string, error) {
+	uploadFiles := []string{}
+	err := filepath.Walk(uploadFileDir, func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+		if info.Name() != filepath.Base(uploadFileDir) {
+			uploadFiles = append(uploadFiles, info.Name())
+		}
+		return nil
+	})
+	if err != nil {
+		return nil, err
+	}
+	// sort files
+	sort.Strings(uploadFiles)
+	log.Printf("[uploader] found files in %s: %s", uploadFileDir, uploadFiles)
 	packageFiles := []string{}
 	for idx, filename := range(uploadFiles) {
 		srcFile := uploadFileDir + "/" + filename
-		destTitle := fmt.Sprintf("%02d", idx)
+		destTitle := fmt.Sprintf("%02d", idx+1)
 		destFilename := destTitle + ".mp3"
 		destFilePath := u.tempDir + "/" + destFilename
 		log.Printf("[uploader] copy/tagging file %s to destination %s", srcFile, destFilePath)
@@ -68,11 +93,84 @@ func (u *Uploader) PackageFiles(packageFiles []string, artist string, title stri
 	return packageFilename, nil
 }
 
-func (u *Uploader) UploadPackageFile(packageFile string) error {
+func (u *Uploader) UploadPackageFile(packageFile string, bucket string) error {
+	log.Printf("[uploader] starting file upload: %s", packageFile)
+	sess := session.Must(session.NewSession())
+	uploader := s3manager.NewUploader(sess)
+	f, err  := os.Open(packageFile)
+	if err != nil {
+		return fmt.Errorf("failed to open file %q: %v", packageFile, err)
+	}
+	result, err := uploader.Upload(&s3manager.UploadInput{
+    Bucket: aws.String(bucket),
+    Key:    aws.String(filepath.Base(packageFile)),
+    Body:   f,
+	})
+	if err != nil {
+    return fmt.Errorf("failed to upload file: %v", err)
+	}
+	log.Printf("[uploader] file uploaded to %s\n", result.Location)
 	return nil
 }
 
-func (u *Uploader) UpdateDirectory(packageFile string, uploadID string, uploadArtist string, uploadTitle string) error {
+func (u *Uploader) UpdateDirectory(packageFile string, uploadID string, uploadArtist string, uploadTitle string, bucket string) error {
+	log.Println("[uploader] start updating directory")
+	// download directory from bucket
+	sess := session.Must(session.NewSession())
+	downloader := s3manager.NewDownloader(sess)
+	buf := &aws.WriteAtBuffer{}
+	n, err := downloader.Download(buf, &s3.GetObjectInput{
+    Bucket: aws.String(bucket),
+    Key:    aws.String("directory.json"),
+	})
+	if err != nil {
+    return fmt.Errorf("failed to download file: %v", err)
+	}
+	log.Printf("[uploader] directory fetched, %d bytes", n)
+	directory := new(base.AudiobookDirectory)
+	json.Unmarshal(buf.Bytes(), directory)
+	log.Println("[uploader] unmarshalled directory")
+	// list files in packageFile
+	zipFile, err := zip.OpenReader(packageFile)
+	if err != nil {
+		return err
+	}
+	defer zipFile.Close()
+	uploadFiles := []string{}
+	for _, zipEntry := range zipFile.File {
+		uploadFiles = append(uploadFiles, zipEntry.FileInfo().Name())
+	}
+	// create new entry
+	tracks := []base.AudiobookTrack{}
+	for idx, filename := range(uploadFiles) {
+		tracks = append(tracks, base.AudiobookTrack{
+			Ord: idx+1,
+			Filename: filename,
+			Title: filename,
+		})
+	}
+	directory.Books = append(directory.Books, base.Audiobook{
+		ID: uploadID,
+		ArchiveFile: filepath.Base(packageFile),
+		Artist: uploadArtist,
+		Title: uploadTitle,
+		Tracks: tracks,
+	})
+	// serialize and upload
+	uploadBytes, err := json.Marshal(directory)
+	if err != nil {
+    return fmt.Errorf("failed to marshall updated directory: %v", err)
+	}
+	uploader := s3manager.NewUploader(sess)
+	result, err := uploader.Upload(&s3manager.UploadInput{
+    Bucket: aws.String(bucket),
+    Key:    aws.String("directory.json"),
+    Body:   bytes.NewReader(uploadBytes),
+	})
+	if err != nil {
+    return fmt.Errorf("failed to upload file %v", err)
+	}
+	log.Printf("[uploader] directory uploaded to %s\n", result.Location)
 	return nil
 }
 
@@ -104,7 +202,6 @@ func (u *Uploader) zipRemoveFiles(zipFilename string, files []string) error {
 			return err
 	}
 	zipWriter := zip.NewWriter(newZipFile)
-	defer zipWriter.Close()
 	for _, file := range files {
 		filename := u.tempDir + "/" + file
 		log.Printf("[uploader] adding file %s to package file %s", filename, zipFilename)
@@ -112,6 +209,7 @@ func (u *Uploader) zipRemoveFiles(zipFilename string, files []string) error {
 				return err
 		}
 	}
+	zipWriter.Close()
 	newZipFile.Close()
 	// zip file created, remove original files
 	for _, file := range files {
@@ -139,7 +237,7 @@ func addFileToZip(zipWriter *zip.Writer, filename string) error {
 	if err != nil {
 			return err
 	}
-	header.Name = filename
+	header.Name = filepath.Base(filename)
 	header.Method = zip.Deflate
 	writer, err := zipWriter.CreateHeader(header)
 	if err != nil {

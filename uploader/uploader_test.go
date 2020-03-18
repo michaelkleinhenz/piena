@@ -29,10 +29,10 @@ func TestDownloader(t *testing.T) {
 	assert.NoError(t, err)
 	t.Run("tagging files", func(t *testing.T) {
 		// create example source dir
-		fileList, err := createSourceMP3Dir(path)
+		_, err := createSourceMP3Dir(path)
 		defer os.RemoveAll(path)
 		assert.NoError(t, err)
-		packageFiles, err := uploader.TagRenameFiles(path, fileList, "Example Artist", "Example Album Title")
+		packageFiles, err := uploader.TagRenameFiles(path, "Example Artist", "Example Album Title")
 		assert.NoError(t, err)
 		for i, packageFile := range(packageFiles) {
 			destFile := uploader.tempDir + "/" + packageFile
@@ -52,10 +52,10 @@ func TestDownloader(t *testing.T) {
 	})
 	t.Run("creating package file", func(t *testing.T) {
 		// create example source dir
-		fileList, err := createSourceMP3Dir(path)
+		_, err := createSourceMP3Dir(path)
 		defer os.RemoveAll(path)
 		assert.NoError(t, err)
-		packageFiles, err := uploader.TagRenameFiles(path, fileList, "Example Artist", "Example Album Title")
+		packageFiles, err := uploader.TagRenameFiles(path, "Example Artist", "Example Album Title")
 		assert.NoError(t, err)
 		packageFile, err := uploader.PackageFiles(packageFiles, "Example Artist", "Example Album Title")
 		assert.NoError(t, err)
@@ -68,7 +68,7 @@ func TestDownloader(t *testing.T) {
 		defer zip.Close()
 		for _, zf := range(zip.File) {
 			assert.True(t, contains(packageFiles, zf.Name))
-			assert.Equal(t, zf.FileInfo().Size(), exampleMP3Info.Size)
+			assert.Equal(t, zf.FileInfo().Size(), exampleMP3Info.Size())
 		}
 		// check if original files are removed
 		for _, pf := range(packageFiles) {
@@ -78,12 +78,12 @@ func TestDownloader(t *testing.T) {
 	})	
 }
 
-func createSourceMP3Dir(basepath string) ([]string, error) {
-	fileList := []string{}
+func createSourceMP3Dir(basepath string) (string, error) {
+	fileList := ""
 	for i := 1; i <= numTracks; i++ {
 		trackfile := "track-" + strconv.Itoa(i) + ".mp3"
 		copyFile(exampleMP3Path, basepath + "/" + trackfile)
-		fileList = append(fileList, trackfile)
+		fileList = fileList + " " + trackfile
 	}
 	return fileList, nil
 }
