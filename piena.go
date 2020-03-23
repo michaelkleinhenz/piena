@@ -3,6 +3,7 @@ package main
 import (
 	"flag"
 	"log"
+	"net/url"
 	"strings"
 	"time"
 
@@ -10,7 +11,7 @@ import (
 	m "github.com/michaelkleinhenz/piena/mopidy"
 	r "github.com/michaelkleinhenz/piena/reader"
 	s "github.com/michaelkleinhenz/piena/state"
-  u "github.com/michaelkleinhenz/piena/uploader"
+	u "github.com/michaelkleinhenz/piena/uploader"
 )
 
 var (
@@ -27,6 +28,7 @@ func main() {
 	playerPtr := flag.String("playerurl", "http://localhost:6680/mopidy/rpc", "Mopidy RPC endpoint address")
 	libraryURLPtr := flag.String("libraryurl", "http://d3aj4nh2mw9ghj.cloudfront.net/directory.json", "Audiobook library URL")
 	libraryDirectoryPtr := flag.String("librarypath", "/home/pi/audiobooks", "Audiobook local library path")
+	readtagPtr := flag.Bool("readtag", false, "Read tag, output ID and exit")
 	uploadPtr := flag.Bool("upload", false, "Upload audiobook to backend service")
 	uploadFileDir := flag.String("dir", "", "Directory with files to be uploaded")
 	uploadArtist := flag.String("artist", "", "Artist for uploaded files")
@@ -34,10 +36,9 @@ func main() {
 	uploadID := flag.String("id", "", "ID for uploaded files")
 	uploadBucket := 	flag.String("s3bucked", "tiena-files", "S3 bucket for upload")
 	flag.Parse()
-	
 	log.Println("[main] piena starting..")
-  var err error
 
+	var err error
 	// check if we should upload an audiobook.
 	if *uploadPtr {
 		if *uploadArtist == "" || *uploadFileDir == "" || *uploadID == "" || *uploadTitle == "" {
@@ -71,6 +72,20 @@ func main() {
 		nfcReader, channel, err = r.NewNfcReader()
 	}
 	defer nfcReader.Close()
+
+	// check if we should just read the tag
+	if *readtagPtr {
+		log.Println("[main] place tag on reader to readout tag ID..")
+		readevent := <-channel
+		switch readevent.Result {
+		case r.NfcStateError:
+			log.Printf("[main] error reading from nfc hardware: %s", readevent.Err.Error())
+		case r.NfcStateTagPresent:
+			log.Printf("[main] tag detected: %s", strings.TrimRight(readevent.ID, "0"))
+		}
+		log.Println("[main] operation done")
+		return
+	}
 
 	// initialize mopidy connection.
 	player, err = m.NewClient(*playerPtr)
@@ -159,7 +174,7 @@ func main() {
 				log.Printf("[main] error when removing tag: %s", err.Error())
 			}
 		case r.NfcStateTagPresent:
-			log.Printf("[main] tag detected: %s", event.ID)
+			log.Printf("[main] new tag detected: %s", event.ID)
 			err = tagDetected(event.ID)
 			if err != nil {
 				log.Printf("[main] error when processing detected tag %s: %s", event.ID, err.Error())
@@ -223,7 +238,7 @@ func tagRemoved() error {
 }
 
 func tagDetected(ID string) error {
-	log.Printf("[main] tag detected: %s", ID)
+	log.Printf("[main] processing detected tag: %s", ID)
 	// retrieve book from ID
 	// TODO: display retrieval progress on UX
 	audiobook, alreadyExisted, err := downloader.GetAudiobook(ID)
@@ -276,7 +291,8 @@ func tagDetected(ID string) error {
 	tracklist := []string{}
 	for idx, track := range(audiobook.Tracks) {
 		if idx >= ord-1 {
-			tracklist = append(tracklist, strings.ReplaceAll("local:track:" + audiobook.Artist + "/" + audiobook.Title + "/" + track.Filename, " ", "%20"))
+			u := &url.URL{Path: "local:track:" + audiobook.Artist + "/" + audiobook.Title + "/" + track.Filename}
+			tracklist = append(tracklist, strings.TrimPrefix(u.String(), "./"))
 		}
 	}
 	log.Printf("[main] adding tracklist for audiobook %s to playlist: %s", ID, tracklist)
